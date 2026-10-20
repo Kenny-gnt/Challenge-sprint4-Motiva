@@ -1,6 +1,6 @@
 # Challenge Sprint 4 - Motiva
 
-## 📌 Descrição do Projeto
+## 📌 Descrição do Projeto 
 
 Este projeto dá continuidade ao sistema **MOTIVA**, desenvolvido para simular um sistema inteligente de monitoramento e priorização de manutenção de vegetação em rodovias.
 
