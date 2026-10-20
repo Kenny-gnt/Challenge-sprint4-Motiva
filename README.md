@@ -4,9 +4,9 @@
 
 Este projeto dá continuidade ao sistema **MOTIVA**, desenvolvido para simular um sistema inteligente de monitoramento e priorização de manutenção de vegetação em rodovias.
 
-Nesta Sprint 4, o sistema foi evoluído com **Spring Boot, Spring Data JPA e API REST**, substituindo o modelo de aplicação via console e JDBC utilizado na Sprint anterior. A aplicação permite cadastrar, consultar, atualizar e excluir informações, além de gerar e consultar relatórios de prioridade por meio de requisições HTTP.
+Nesta Sprint 4, o sistema foi evoluído com **Spring Boot, Spring Data JPA e API REST**, substituindo a persistência com JDBC puro utilizada na Sprint 3. A aplicação permite realizar operações CRUD, gerar relatórios de prioridade e consultar o histórico de relatórios por meio de requisições HTTP.
 
-A persistência dos dados continua utilizando o **Oracle Database**, agora com acesso realizado pelo Spring Data JPA.
+A persistência dos dados continua utilizando o **Oracle Database**, agora com acesso gerenciado pelo Spring Data JPA, reduzindo a necessidade de código SQL e JDBC manual.
 
 ---
 
@@ -27,36 +27,34 @@ Sofia Bill Franken RM 562767
 ## 🛠️ Tecnologias Utilizadas
 
 - Java 17
-- Spring Boot
+- Spring Boot 4.1.x
 - Spring Web
 - Spring Data JPA
-- Oracle Database
-- Oracle JDBC Driver
+- Oracle Database FIAP
+- Oracle JDBC Driver (`ojdbc17`)
 - Maven
 - Eclipse IDE
 - Git e GitHub
+- cURL
 - Programação Orientada a Objetos (POO)
-- API REST
 
 ---
 
 ## 💡 Conceitos Aplicados
 
-- Herança e Encapsulamento
-- Organização em Pacotes
-- Arquitetura em Camadas
-- Spring Boot
-- Spring Data JPA
-- Mapeamento Objeto-Relacional (ORM)
+- Encapsulamento e organização em pacotes
+- Arquitetura em camadas
 - Entidades JPA
-- Interfaces Repository
+- Mapeamento Objeto-Relacional (ORM)
+- Interfaces `JpaRepository`
+- Padrão DAO aplicado por meio dos Repositories
 - Operações CRUD
-- API REST
-- Requisições HTTP
-- Validação de Dados
-- Tratamento Global de Exceções
-- Persistência de Dados
-- Consultas ao Banco de Dados
+- API REST e requisições HTTP
+- Validação de dados
+- Tratamento global de exceções
+- Persistência de dados
+- Consultas derivadas do Spring Data JPA
+- Testes automatizados
 
 ---
 
@@ -64,7 +62,7 @@ Sofia Bill Franken RM 562767
 
 ### Gerenciamento de Equipes
 
-Permite realizar operações por meio da API REST:
+A API permite realizar operações de:
 
 - Cadastro de equipes
 - Consulta de equipe por ID
@@ -80,7 +78,7 @@ O sistema permite cadastrar e gerenciar trechos rodoviários, armazenando inform
 - Nível de vegetação
 - Tipo de trecho
 
-As operações disponíveis incluem cadastro, consulta, atualização e exclusão de trechos.
+As operações disponíveis incluem cadastro, consulta, atualização e exclusão por meio de endpoints REST.
 
 ### Gerenciamento de Intervenções
 
@@ -89,34 +87,37 @@ Permite cadastrar e gerenciar intervenções operacionais, incluindo:
 - Roçada
 - Pulverização
 
-Cada intervenção possui informações sobre o tipo de operação e a equipe responsável.
+Cada intervenção contém informações sobre o tipo de operação e a equipe responsável.
 
 ### Relatório de Prioridade
 
-O sistema analisa o nível de vegetação dos trechos e classifica automaticamente a prioridade de manutenção.
+O sistema analisa os níveis de vegetação dos trechos e classifica as prioridades de manutenção conforme as regras de negócio implementadas no Service.
 
 | Nível de Vegetação | Prioridade |
 |---------------------|------------|
 | ≥ 8 | URGENTE |
-| ≥ 6 | CRÍTICO |
-| ≥ 4 | ATENÇÃO |
+| ≥ 6 e < 8 | CRÍTICO |
+| ≥ 4 e < 6 | ATENÇÃO |
 | < 4 | NORMAL |
 
-Os relatórios gerados são armazenados no banco de dados e podem ser consultados posteriormente.
+Os relatórios gerados são persistidos no Oracle Database, permitindo consultar os resultados posteriormente.
+
+*Observação: os limites acima devem corresponder às regras efetivamente implementadas no projeto.*
 
 ### Histórico de Relatórios
 
 A aplicação permite:
 
-- Gerar novos relatórios de prioridade
-- Consultar os relatórios registrados
-- Consultar relatórios por período
+- Gerar um relatório de prioridade a partir dos trechos cadastrados
+- Armazenar os resultados no banco de dados
+- Consultar o histórico de relatórios
+- Buscar relatórios por período
 
 ---
 
 ## 🗄️ Banco de Dados
 
-O sistema utiliza o **Oracle Database**, integrado à aplicação por meio do Spring Data JPA e do driver JDBC da Oracle.
+O sistema utiliza o **Oracle Database FIAP**, integrado à aplicação por meio do Spring Data JPA e do driver JDBC da Oracle.
 
 As tabelas utilizadas no sistema são:
 
@@ -125,70 +126,147 @@ As tabelas utilizadas no sistema são:
 - `INTERVENCAO_OPERACIONAL`
 - `RELATORIO_PRIORIDADE`
 
-O mapeamento entre as classes Java e as tabelas do banco é realizado por meio de entidades JPA, utilizando anotações como `@Entity`, `@Table`, `@Id` e `@GeneratedValue`.
+As classes Java são mapeadas para as tabelas do banco por meio de entidades JPA, utilizando anotações como `@Entity`, `@Table`, `@Id`, `@GeneratedValue` e `@SequenceGenerator`.
 
-As credenciais de acesso ao banco são configuradas por variáveis de ambiente, evitando a exposição de informações sensíveis no código-fonte.
+A configuração da conexão é realizada pelo arquivo `application.properties`, utilizando variáveis de ambiente para evitar a exposição das credenciais no repositório.
 
 ---
 
 ## 🔌 Spring Data JPA e Repositories
 
-Nesta Sprint, o acesso aos dados foi reorganizado utilizando o **Spring Data JPA**, substituindo a implementação manual de consultas SQL e operações JDBC da Sprint anterior.
+Nesta Sprint, o acesso aos dados foi migrado das classes DAO com JDBC manual para interfaces que estendem `JpaRepository`.
 
-Os repositories estendem a interface `JpaRepository`, disponibilizando operações de persistência, consulta, atualização e exclusão.
+O Spring Data JPA disponibiliza operações como:
 
-A aplicação utiliza consultas derivadas dos nomes dos métodos dos repositories quando necessário, permitindo buscar informações sem precisar implementar manualmente cada consulta SQL.
+- `save()` — salvar ou atualizar registros
+- `findAll()` — listar registros
+- `findById()` — consultar por ID
+- `deleteById()` — excluir por ID
+
+Também é possível utilizar **derived queries**, métodos cujos nomes descrevem os critérios de busca. O Spring Data JPA interpreta esses nomes e gera as consultas correspondentes.
+
+Dessa forma, a aplicação reduz o código necessário para acessar o banco e mantém as operações de persistência separadas das regras de negócio.
 
 ---
 
 ## 🏗️ Arquitetura da Aplicação
 
-O projeto está organizado em camadas para facilitar a manutenção e a separação das responsabilidades.
-
-### Controller
-
-Responsável por receber as requisições HTTP e disponibilizar os endpoints da API REST.
-
-### Service
-
-Responsável pelas regras de negócio, validações e execução das operações solicitadas.
-
-### Repository
-
-Responsável pelo acesso e pela persistência dos dados utilizando Spring Data JPA.
+O projeto utiliza arquitetura em camadas, separando as responsabilidades de cada componente.
 
 ### Model
 
 Contém as entidades que representam os dados persistidos no banco de dados.
 
+### Repository
+
+Responsável pelo acesso aos dados utilizando interfaces `JpaRepository`, sem necessidade de implementar manualmente cada operação CRUD.
+
+### Service
+
+Responsável pelas regras de negócio, validações e geração dos relatórios de prioridade.
+
+### Controller
+
+Recebe as requisições HTTP, encaminha as operações para a camada Service e retorna as respostas da API REST.
+
 ### DTO
 
-Contém objetos utilizados para transportar dados entre as requisições e a aplicação, quando necessário.
+Contém objetos utilizados para transportar dados entre as requisições e a aplicação, separando os dados de entrada e saída das entidades quando necessário.
 
-### Tratamento de Exceções
+### Tratamento Global de Exceções
 
-O tratamento global de exceções padroniza as respostas de erro da API, facilitando a identificação de problemas durante as requisições.
+A classe `GlobalExceptionHandler` centraliza o tratamento de erros, permitindo retornar respostas HTTP apropriadas para situações como dados inválidos ou registros não encontrados.
+
+O fluxo principal da aplicação é:
+
+`Controller → Service → Repository → Oracle Database`
 
 ---
 
 ## 🌐 Endpoints da API REST
 
-A aplicação disponibiliza endpoints para gerenciamento dos recursos do sistema.
+A API disponibiliza endpoints para gerenciamento de trechos, equipes, intervenções e relatórios.
 
-| Recurso | Endpoint principal | Operações |
-|---------|--------------------|-----------|
-| Trechos | `/api/trechos` | GET, POST, PUT, DELETE |
-| Equipes | `/api/equipes` | GET, POST, PUT, DELETE |
-| Intervenções | `/api/intervencoes` | GET, POST, PUT, DELETE |
-| Relatórios | `/api/relatorios` | GET, POST |
+| Método HTTP | Endpoint | Ação | Resposta esperada |
+|---|---|---|---|
+| GET | `/api/trechos` | Listar trechos | 200 OK |
+| GET | `/api/trechos/{id}` | Buscar trecho por ID | 200 OK / 404 Not Found |
+| POST | `/api/trechos` | Cadastrar trecho | 201 Created |
+| PUT | `/api/trechos/{id}` | Atualizar trecho | 200 OK / 404 Not Found |
+| DELETE | `/api/trechos/{id}` | Excluir trecho | 204 No Content / 404 Not Found |
+| GET | `/api/equipes` | Listar equipes | 200 OK |
+| GET | `/api/equipes/{id}` | Buscar equipe por ID | 200 OK / 404 Not Found |
+| POST | `/api/equipes` | Cadastrar equipe | 201 Created |
+| PUT | `/api/equipes/{id}` | Atualizar equipe | 200 OK / 404 Not Found |
+| DELETE | `/api/equipes/{id}` | Excluir equipe | 204 No Content / 404 Not Found |
+| GET | `/api/intervencoes` | Listar intervenções | 200 OK |
+| GET | `/api/intervencoes/{id}` | Buscar intervenção por ID | 200 OK / 404 Not Found |
+| POST | `/api/intervencoes` | Cadastrar intervenção | 201 Created |
+| PUT | `/api/intervencoes/{id}` | Atualizar intervenção | 200 OK / 404 Not Found |
+| DELETE | `/api/intervencoes/{id}` | Excluir intervenção | 204 No Content / 404 Not Found |
+| POST | `/api/relatorios` | Gerar e persistir relatório | 200 OK ou código implementado |
+| GET | `/api/relatorios` | Consultar histórico | 200 OK |
+| GET | `/api/relatorios/periodo?inicio=...&fim=...` | Consultar por período | 200 OK |
 
-Também é possível consultar relatórios por período utilizando o endpoint:
+Requisições com dados inválidos podem retornar `400 Bad Request`, conforme as validações implementadas.
 
-```text
-GET /api/relatorios/periodo?inicio=DATA_INICIAL&fim=DATA_FINAL
+---
+
+## 📡 Exemplos de Requisições cURL
+
+Com a aplicação em execução na porta `8080`, é possível testar os endpoints pelo terminal.
+
+### Listar trechos
+
+```bash
+curl -i http://localhost:8080/api/trechos
 ```
 
-As respostas da API utilizam códigos HTTP adequados, como `200 OK`, `201 Created`, `204 No Content`, `400 Bad Request` e `404 Not Found`.
+### Cadastrar um trecho
+
+```bash
+curl -i -X POST http://localhost:8080/api/trechos \
+  -H "Content-Type: application/json" \
+  -d "{\"km\":80,\"nivelVegetacao\":15,\"tipo\":\"RURAL\"}"
+```
+
+### Atualizar um trecho
+
+```bash
+curl -i -X PUT http://localhost:8080/api/trechos/1 \
+  -H "Content-Type: application/json" \
+  -d "{\"km\":80,\"nivelVegetacao\":20,\"tipo\":\"RURAL\"}"
+```
+
+Substitua `1` pelo ID de um trecho existente e utilize os campos exigidos pelo projeto.
+
+### Excluir uma equipe
+
+```bash
+curl -i -X DELETE http://localhost:8080/api/equipes/9999
+```
+
+Para testar a exclusão com sucesso, substitua `9999` pelo ID de uma equipe existente. Um ID inexistente pode ser utilizado para verificar o tratamento de erros.
+
+### Gerar relatório de prioridade
+
+```bash
+curl -i -X POST http://localhost:8080/api/relatorios
+```
+
+### Consultar o histórico de relatórios
+
+```bash
+curl -i http://localhost:8080/api/relatorios
+```
+
+### Consultar relatórios por período
+
+```bash
+curl -i "http://localhost:8080/api/relatorios/periodo?inicio=2026-10-01T00:00:00&fim=2026-10-31T23:59:59"
+```
+
+Os exemplos devem ser executados com a aplicação iniciada. Os campos enviados e os formatos de data devem corresponder aos aceitos pela API.
 
 ---
 
@@ -233,20 +311,21 @@ evidencias/
 
 - Java 17
 - Maven
-- Oracle Database
+- Oracle Database FIAP
 - Eclipse IDE ou outra IDE compatível
 
 ### Configuração
 
 1. Clone o repositório do projeto.
-2. Configure as variáveis de ambiente para o acesso ao Oracle:
+2. Configure as variáveis de ambiente para a conexão com o Oracle:
    - `DB_URL`
    - `DB_USERNAME`
    - `DB_PASSWORD`
-3. Verifique as configurações de conexão no arquivo `application.properties`.
-4. Execute a aplicação Spring Boot.
+3. Confira as configurações de conexão no arquivo `application.properties`.
+4. Verifique se o banco está acessível e se as tabelas e sequences necessárias já existem.
+5. Execute a aplicação Spring Boot.
 
-Para executar pelo terminal, utilize:
+Para iniciar a aplicação pelo terminal:
 
 ```bash
 ./mvnw spring-boot:run
@@ -258,27 +337,58 @@ Para executar os testes automatizados:
 ./mvnw clean test
 ```
 
-Após iniciar a aplicação, a API estará disponível localmente na porta `8080`.
+Após iniciar a aplicação, a API estará disponível em:
 
-> **Importante:** as credenciais do Oracle devem ser configuradas localmente e não devem ser publicadas no repositório.
+```text
+http://localhost:8080
+```
+
+> **Importante:** não publique senhas reais nem outras credenciais do Oracle no repositório. Configure os valores localmente por meio de variáveis de ambiente.
 
 ---
 
 ## 🧪 Testes Realizados
 
-A aplicação foi executada e testada, incluindo:
+Foram realizados testes da aplicação e das operações disponibilizadas pela API, incluindo:
 
-- Testes automatizados da aplicação
+- Testes automatizados com Spring Boot e MockMvc
 - Listagem de trechos
 - Cadastro de trechos
 - Atualização de registros
 - Exclusão de equipes
 - Consulta de relatórios
-- Validação de requisições
-- Tratamento de erros e registros não encontrados
-- Verificação dos códigos de resposta HTTP
+- Tratamento de registros não encontrados
+- Verificação das respostas HTTP
 
-As evidências dos testes estão disponíveis na pasta `evidencias/`.
+As evidências das requisições estão disponíveis na pasta `evidencias/`.
+
+---
+
+## 💭 Perguntas de Reflexão
+
+### 1. Por que o `Repository` é uma interface e não uma classe? Quem escreve a implementação e quando?
+
+O `Repository` é uma interface porque define as operações de acesso aos dados sem precisar implementar manualmente cada método. O Spring Data JPA cria a implementação automaticamente em tempo de execução, disponibilizando operações como `save()`, `findAll()`, `findById()` e `deleteById()`.
+
+Dessa forma, o código fica mais simples, organizado e fácil de manter.
+
+### 2. O pattern DAO da Sprint 3 morreu na migração ou só mudou de forma?
+
+O pattern DAO não morreu, apenas mudou de forma. Na Sprint 3, criamos classes DAO manualmente para executar comandos SQL utilizando JDBC. Na Sprint 4, essa responsabilidade passou para os Repositories do Spring Data JPA, que fornecem métodos de acesso aos dados sem a necessidade de escrever manualmente todo o código JDBC.
+
+Assim, a separação entre acesso aos dados e regras de negócio continua existindo, mas com menos código e maior produtividade.
+
+### 3. Por que a validação de `nivelVegetacao >= 0` deve ficar no Service e não no Controller?
+
+A validação deve fazer parte das regras de negócio do Service, pois essa camada é responsável por garantir que os dados respeitem as condições definidas pelo sistema, independentemente do endpoint utilizado.
+
+O Controller recebe as requisições HTTP e encaminha os dados ao Service. Essa separação evita duplicação de regras e facilita a manutenção. Validações de entrada também podem ser complementadas com Bean Validation, utilizando anotações como `@PositiveOrZero` e `@Valid`.
+
+### 4. No JDBC puro vocês escreviam SQL. Onde está o SQL do `findByTipo()`? Quem o gerou?
+
+No Spring Data JPA, o SQL não precisa ser escrito manualmente para consultas derivadas. Quando um método como `findByTipo()` é declarado em um Repository, o Spring Data JPA interpreta seu nome e prepara a consulta correspondente em tempo de execução, utilizando o provedor JPA, como o Hibernate, para executar a operação no banco de dados.
+
+Assim, é possível buscar registros por tipo sem escrever manualmente a consulta SQL.
 
 ---
 
