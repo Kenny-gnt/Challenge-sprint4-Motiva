@@ -1,0 +1,24 @@
+
+# Maven
+target/
+mvnw
+mvnw.cmd
+.mvn/wrapper/maven-wrapper.jar
+
+# Eclipse
+.classpath
+.project
+.settings/
+.apt_generated/
+
+# IntelliJ / VS Code
+.idea/
+.vscode/
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# Configurações locais com credenciais
+application-local.properties
+.env
